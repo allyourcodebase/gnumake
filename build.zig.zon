@@ -1,0 +1,18 @@
+.{
+    .name = "gnumake",
+    .version = "0.0.0",
+    .minimum_zig_version = "0.12.0",
+    .dependencies = .{
+        .make = .{
+            .url = "https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz",
+            .hash = "12205f66cba6fc33b91195339f50617f28b1de62806ad556247e34bb3e8a7fa4c382",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "inc",
+        "mkcustom.h",
+        "README.md",
+    },
+}
