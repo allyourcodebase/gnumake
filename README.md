@@ -2,6 +2,11 @@
 
 Provides a package to build/run GNU's make program.
 
+The primary use case for this project is to facilitate "incremental ports" to the Zig build system.
+Start with a project by building it with Make then incrementally transfer parts of it to `build.zig`
+while maintaining a working build that can be tested throughout.  It's not recommended for projects to
+use this package long term.
+
 # Status
 
 ## Hermetic Cross Targets
