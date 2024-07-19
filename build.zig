@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
                 .HAVE_STPCPY = 1,
             }),
         }
-        if (target.result.isDarwin() or target.result.isGnuLibC()) {
+        if (target_has_sys_siglist(target)) {
             config_header.addValues(.{
                 .HAVE_DECL_SYS_SIGLIST = 1,
             });
@@ -120,6 +120,19 @@ pub fn build(b: *std.Build) void {
         run_test.setCwd(make_dep.path("tests"));
         b.step("test", "").dependOn(&run_test.step);
     }
+}
+
+fn target_has_sys_siglist(t: std.Build.ResolvedTarget) bool {
+    if (t.result.isDarwin()) return true;
+    if (t.result.isGnuLibC()) {
+        const vr = t.result.os.getVersionRange();
+        // newer glibc does not allow linking with sys_siglist
+        // https://lists.gnu.org/archive/html/info-gnu/2020-08/msg00002.html
+        if (vr == .linux and vr.linux.glibc.major >= 2 and vr.linux.glibc.minor >= 32)
+            return false;
+        return true;
+    }
+    return false;
 }
 
 fn linkGlob(
@@ -331,7 +344,7 @@ const make_config = .{
     .HAVE_STRNCMPI = null,
     .HAVE_STRNDUP = null,
     .HAVE_STRNICMP = null,
-    .HAVE_STRSIGNAL = null,
+    .HAVE_STRSIGNAL = 1,
     // ????????????????????????????????????????????????????????????????????????????????
     .HAVE_STRTOLL = 1,
     .HAVE_STRUCT_DIRENT_D_TYPE = null,
