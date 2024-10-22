@@ -125,7 +125,7 @@ pub fn build(b: *std.Build) void {
 fn target_has_sys_siglist(t: std.Build.ResolvedTarget) bool {
     if (t.result.isDarwin()) return true;
     if (t.result.isGnuLibC()) {
-        const vr = t.result.os.getVersionRange();
+        const vr = t.result.os.versionRange();
         // newer glibc does not allow linking with sys_siglist
         // https://lists.gnu.org/archive/html/info-gnu/2020-08/msg00002.html
         if (vr == .linux and vr.linux.glibc.major >= 2 and vr.linux.glibc.minor >= 32)
