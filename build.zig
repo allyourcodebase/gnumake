@@ -30,13 +30,17 @@ pub fn build(b: *std.Build) void {
                 .HAVE_FCNTL_H = null,
                 .HAVE_STPCPY = 0,
             }),
-            else => config_header.addValues(.{
-                .PATH_SEPARATOR_CHAR = .@"':'",
-                .HAVE_DOS_PATHS = null,
-                .HAVE_UNISTD_H = 1,
-                .HAVE_FCNTL_H = 1,
-                .HAVE_STPCPY = 1,
-            }),
+            else => {
+                config_header.addValues(.{
+                    .PATH_SEPARATOR_CHAR = .@"':'",
+                    .HAVE_DOS_PATHS = null,
+                    .HAVE_UNISTD_H = 1,
+                    .HAVE_FCNTL_H = 1,
+                    .HAVE_STPCPY = 1,
+                });
+                module.addCMacro("_GNU_SOURCE", "1");
+                module.addCMacro("__GNU_LIBRARY__", "1");
+            },
         }
         if (target_has_sys_siglist(target)) {
             config_header.addValues(.{
@@ -61,22 +65,16 @@ pub fn build(b: *std.Build) void {
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             module.addCMacro("LIBDIR", "\"lib\"");
         }
-        // if (target.result.isGnuLibC()) {
-        // TODO: only do this if we are compiling against gnu
-        //module.addCMacro("__USE_GNU", "1");
-        module.addCMacro("_GNU_SOURCE", "1");
-        // }
-        // module.addCMacro("__STDC__", "1");
-        module.addCMacro("__GNU_LIBRARY__", "1");
         const write_files = b.addWriteFiles();
         _ = write_files.addCopyFile(b.path("mkcustom.h"), "src/mkcustom.h");
         if (target.result.os.tag == .windows) {
             _ = write_files.addCopyFile(make_dep.path("src/config.h.W32"), "src/config.h");
         } else {
-            _ = write_files.addCopyFile(config_header.getOutput(), "src/config.h");
+            _ = write_files.addCopyFile(config_header.getOutputFile(), "src/config.h");
         }
 
-        module.addIncludePath(write_files.getDirectory().path(b, "src"));
+        const config_header_include_path = write_files.getDirectory().path(b, "src");
+        module.addIncludePath(config_header_include_path);
 
         module.addCSourceFiles(.{
             .root = make_root,
@@ -100,7 +98,7 @@ pub fn build(b: *std.Build) void {
             else => {},
         }
 
-        module.linkLibrary(buildGlobLib(b, target, optimize, make_dep, config_header));
+        module.linkLibrary(buildGlobLib(b, target, optimize, make_dep, config_header_include_path));
 
         const exe = b.addExecutable(.{
             .name = "make",
@@ -141,14 +139,14 @@ fn target_has_sys_siglist(t: std.Build.ResolvedTarget) bool {
     return false;
 }
 
-fn buildGlobLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, make_dep: *std.Build.Dependency, config_header: *std.Build.Step.ConfigHeader) *std.Build.Step.Compile {
+fn buildGlobLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, make_dep: *std.Build.Dependency, include_dir: std.Build.LazyPath) *std.Build.Step.Compile {
     const module = b.createModule(.{
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
 
-    module.addConfigHeader(config_header);
+    module.addIncludePath(include_dir);
 
     const glob_header = b.addConfigHeader(.{
         .style = .{ .autoconf_at = make_dep.path("lib/glob.in.h") },
@@ -187,6 +185,7 @@ fn buildGlobLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
         .name = "glob",
         .root_module = module,
     });
+    lib.installConfigHeader(fnmatch_header);
     lib.installConfigHeader(glob_header);
     return lib;
 }
@@ -334,15 +333,15 @@ const make_config = .{
     .HAVE_STDINT_H = 1,
     .HAVE_STDIO_H = 1,
     .HAVE_STDLIB_H = 1,
-    .HAVE_STRCASECMP = null,
-    .HAVE_STRCMPI = null,
+    .HAVE_STRCASECMP = 1,
+    .HAVE_STRCMPI = 1,
     .HAVE_STRCOLL = null,
     .HAVE_STRDUP = null,
     .HAVE_STRERROR = null,
     .HAVE_STRICMP = null,
     .HAVE_STRINGS_H = null,
     .HAVE_STRING_H = 1,
-    .HAVE_STRNCASECMP = null,
+    .HAVE_STRNCASECMP = 1,
     .HAVE_STRNCMPI = null,
     .HAVE_STRNDUP = null,
     .HAVE_STRNICMP = null,
